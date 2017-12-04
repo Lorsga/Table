@@ -7,11 +7,11 @@ class Pagination extends Component
      return (
         <div>
         <ul className="page-numbers">
-        <button value={this.props.min} onClick={this.props.onChange}>|&lt;</button>
-        <button value={currentPage-1}  onClick={this.props.onChange}>&lt;</button>
-        <input type="number" onChange={this.props.onChange} value={currentPage} max={this.props.max} min={this.props.min} />
-        <button  className="nextPagination"  value={currentPage+1}  onClick={this.props.onChange}>&gt;</button>
-        <button className="nextPagination" value={this.props.max}  onClick={this.props.onChange}>&gt;|</button>
+        <button value={this.props.min} onClick={(event)=>this.props.onChange(event,this.props.max)}>|&lt;</button>
+        <button value={currentPage-1}  onClick={(event)=>this.props.onChange(event,this.props.max)}>&lt;</button>
+        <input type="number" onChange={(event)=>this.props.onChange(event,this.props.max)} value={currentPage} max={this.props.max} min={this.props.min} />
+        <button  className="nextPagination"  value={currentPage+1}  onClick={(event)=>this.props.onChange(event,this.props.max)}>&gt;</button>
+        <button className="nextPagination" value={this.props.max}  onClick={(event)=>this.props.onChange(event,this.props.max)}>&gt;|</button>
         </ul>
         </div>
      );

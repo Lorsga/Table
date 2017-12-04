@@ -2,191 +2,181 @@ import React, { Component } from 'react';
 import Row from './Row';
 import Pagination from './Pagination';
 import SelectPage from './SelectPage';
+import SearchFilter from './SearchFilter';
+import HeaderTable from './HeaderTable';
+import { arrayFiltered, filters, orders, displayOrder } from '../utils/utils';
+import './Table.css';
 
- class Table extends Component
- {
-constructor(props)
-{
-    super(props);
-    this.state={
-        select:[5,10,15,20,25],
-        maxPages:0,
-        minPages:0,
-        rowState:[],
-        currentPage: 1,
-        elementForPage:null,
-        checkAllState:[],
-        filter:"",
-        result:[],
- 
+
+class Table extends Component {
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            select: [5, 10, 15, 20, 25],
+            currentPage: 1,
+            elementForPage: null,
+            filterText: {},
+            result: this.props.customer,
+            propertyObject: [],
+            separatorDate: "/",
+            sort:{},
+            property: null,
+            statusRow: [],
+            checkAllStatus:[]
+        }
+
     }
 
-}
-
-
-componentWillMount()
-{   
-   var checkAllState=[];
-   const pageNumbers = [];
-   var rowState=[];
-    for (var j = 0; j < Math.ceil(this.props.customer.length / this.state.select[0]); j++) {
-       checkAllState[j]=false;
-       pageNumbers.push(j);
-      }
-      for (var i = 0; i<this.props.customer.length; i++) {
-        rowState[i]=false;
-      }
-
-      this.setState({checkAllState:checkAllState,
-    rowState:rowState,
-    maxPages:Math.max.apply(null,pageNumbers),
-    minPages:Math.min.apply(null,pageNumbers),
-    elementForPage:this.state.select[0],
-    result:this.props.customer
-    });
-
-
-   
-}
-
-    checkRow=(id,value)=>
-    {  
-        this.setState(prevState=>({
-            rowState:prevState.rowState.splice(id,1,value)}));
-
-        var currentPage=this.state.currentPage-1;
-        var splitRowState=this.splitRowState();
-        const state=splitRowState[currentPage].every((v,i,a)=>v===true);
-        if(this.state.checkAllState[currentPage])
-        {
-            this.setState(prevState=>({
-                checkAllState:prevState.checkAllState.splice(currentPage,1,
-                    !this.state.checkAllState[currentPage])}));
-        }else
-        {
-            if(state)
-            {
-                this.setState(prevState=>({
-                checkAllState:prevState.checkAllState.splice(currentPage,1,
-                   true)}));
-            }
+    componentWillMount() {
+        var statusRow = [];
+        var checkAllStatus=[];
+        for (let i = 0; i < this.props.customer.length; i++) {
+            let row = [];
+            row.Id = this.props.customer[i].id;
+            row.Value = false;
+            statusRow.push(row);
         }
-        var rowState=this.concatRowState(splitRowState);
+
+        for (let j = 0; j < Math.ceil(this.props.customer.length / this.state.select[0]); j++) {
+            checkAllStatus[j] = false;
+        }
+        var propertyObject = Object.keys(this.state.result[0])
+            .filter((user, index) => {
+                return user;
+            })
+
         this.setState({
-            rowState: rowState,
-            checkAllState:this.state.checkAllState
+            checkAllStatus: checkAllStatus,
+            elementForPage: this.state.select[0],
+            propertyObject: propertyObject,
+            statusRow: statusRow
+        });
+    }
+
+
+    checkRow = (id, value,rowStatus) => {
+        let statusRow = this.state.statusRow;
+        let currentPage=this.state.currentPage-1;
+
+       statusRow.filter((row, i) => row.Id === id?
+        statusRow[i].Value = value:false);
+
+        const state=rowStatus.every((v,i,a)=>v.Value===true);
+
+        this.setState(prevState=>({
+            checkAllState:prevState.checkAllStatus.splice(currentPage,1,
+               state)}));
+        
+        this.setState({ statusRow: statusRow })
+
+    }
+
+    checkAll = (event,rowStatus) => {
+        let currentPage=this.state.currentPage;
+        let value=event.target.checked;
+        let checkAllStatus=this.state.checkAllStatus.slice();
+        checkAllStatus[currentPage-1]=value;
+        
+        rowStatus.map((row,i)=> {
+            return rowStatus[i].Value = event.target.checked;
+        });
+
+        this.setState({
+            checkAllStatus:checkAllStatus});
+    }
+
+    handleSelectChange = (event) => {
+
+        this.setState({
+            elementForPage: event.target.value,
+            currentPage: 1
+        });
+    }
+
+    pageOnChange = (event, maxPages) => {
+        var currentStatePage = event.target.value;
+        if (currentStatePage > 0) {
+            currentStatePage = currentStatePage > maxPages ? maxPages : currentStatePage;
+        } else {
+            currentStatePage = 1;
+        }
+        this.setState({
+            currentPage: currentStatePage
+        });
+    }
+    search = (event) => {
+        let filterText = this.state.filterText;
+        let property = event.target.id;
+        let value = event.target.value;
+
+        filterText = filters(filterText, property, value);
+
+        this.setState({
+            filterText: filterText,
+            currentPage: 1
         })
     }
 
-    splitRowState=()=>
-    {
-        debugger;
-        var splitState=[];
-        while(this.state.rowState.length)
-        {
-            splitState.push(this.state.rowState.splice(0,this.state.elementForPage));
-        }
-        return splitState;
-    }
+    onSort = (event) => {
+        let sort = this.state.sort;
+        let property = event.target.id;
 
-    concatRowState=(rowState)=>
-    {
-        var concatState=[];
-        for(var j = 0; j < rowState.length; j++)
-            {
-                concatState = concatState.concat(rowState[j]);
-            }
-        return concatState;
-    }
-    checkAll=(currentPage,currentCustomer)=>
-    {     
-        debugger;
-        var checkState=!this.state.checkAllState[currentPage-1];
-        this.setState(prevState=>({
-            checkAllState:prevState.checkAllState.splice(currentPage-1,1,checkState)
-        }))
-        var rowState=this.splitRowState();
-        for( var i=0; i<currentCustomer.length; i++) {
-            rowState[currentPage-1][i]=checkState;  
-          }
-         var rowConcatState=this.concatRowState(rowState);
-        this.setState({
-            rowState:rowConcatState,
-            checkAllState:this.state.checkAllState})
-    }
+        sort = displayOrder(property, sort, this.state.property);
 
-    handleClick(event) {
         this.setState({
-          currentPage: Number(event.target.id),
+            sort: sort,
+            property: property
         });
-        
-      }
+    }
 
-      handleSelectChange=(event)=>
-      {
-        this.setState({
-            elementForPage: event.target.value,
-            currentPage:1
-          });
-      }
 
-      pageOnChange=(event)=>
-      { 
-        var currentStatePage=event.target.value;
-        if(currentStatePage>0){
-            currentStatePage=currentStatePage>this.state.maxPages?this.state.maxPages:currentStatePage;
-        } else{
-            currentStatePage=1;
+    render() {
+
+        const { currentPage,
+            elementForPage,
+            statusRow,
+            filterText,
+            separatorDate,
+            property } = this.state;
+        const defaultCustomer = this.props.customer.slice();
+        let sort= this.state.sort;
+        //utenti filtrati
+        var customersFiltered = arrayFiltered(filterText, defaultCustomer, separatorDate);
+        customersFiltered = orders(customersFiltered,property,sort[property]);
+
+        //calcolo elementi per pagina
+        const indexOfLastElement = currentPage * elementForPage;
+        const indexOfFirstElement = indexOfLastElement - elementForPage;
+
+        const currentCustomer = customersFiltered.slice(indexOfFirstElement, indexOfLastElement);
+        const rowStatus = statusRow.slice(indexOfFirstElement, indexOfLastElement);
+
+        //calcolo pagine tabella
+        var pageNumbers = [];
+        for (var k = 1; k <= Math.ceil(this.state.result.length / this.state.elementForPage); k++) {
+            pageNumbers.push(k);
         }
-        this.setState({
-            currentPage: currentStatePage,
-          });
-      }
-        search=(event)=>
-        {
-            
-            let filtering= this.props.customer.filter(
-                (user)=>{
-                    return user.nome.toLowerCase().indexOf(event.target.value.toLowerCase())!==-1;
-                }
-            );
 
-            this.setState({
-            filter:event.target.value,
-            result:filtering});
+        var maxPages = Math.max.apply(null, pageNumbers);
+        var minPages = Math.min.apply(null, pageNumbers);
 
-        }
-       
-    render(){
-        const {currentPage, elementForPage } = this.state;
-        const indexOfLastTodo = currentPage * elementForPage;
-        const indexOfFirstTodo = indexOfLastTodo - elementForPage;
-         const currentCustomer = this.state.result.slice(indexOfFirstTodo, indexOfLastTodo);
-        return(
-        <div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Check</th>
-                        <th>Nome</th>
-                        <th>Cognome</th>
-                    </tr>
-                </thead>
-            <tbody>
-            <tr>
-                <td><input type="checkbox" checked={this.state.checkAllState[currentPage-1]} onChange={()=>this.checkAll(currentPage,currentCustomer)}/>
-                </td>
-                    <td><input type="text" value={this.state.filter} onChange={this.search.bind(this)}/></td>
-                    <td><input type="text"/></td>
-            </tr>
-                 {currentCustomer.map((users,index)=>
-                 <Row index={users.id}  checked={this.state.rowState[users.id]} callback={this.checkRow} key={index} {...users}/>)
-                 }
-            </tbody>
-            </table>
-            <Pagination min={this.state.minPages} max={this.state.maxPages} onChange={this.pageOnChange} currentPage={currentPage}/>
-            <SelectPage selectPage={this.state.select}  handleSelectChange={this.handleSelectChange}/>
-        </div>
+        return (
+            <div>
+                <table className="customers">
+                    <thead>
+                        <HeaderTable propertyObject={this.state.propertyObject} sort={this.state.sort}  onSort={this.onSort} />
+                    </thead>
+                    <tbody>
+                        <SearchFilter propertyObject={this.state.propertyObject} onChange={this.search} checkAllStatus={this.state.checkAllStatus[currentPage-1]} checkAll={(event)=>this.checkAll(event,rowStatus)} />
+                        {currentCustomer.map((users, id) =>
+                            <Row index={users.id} key={id} checked={rowStatus[id].Value} separatorDate={this.state.separatorDate} callback={this.checkRow} rowStatus={rowStatus} {...users} />)
+                        }
+                    </tbody>
+                </table>
+                <Pagination min={minPages} max={maxPages} onChange={this.pageOnChange} currentPage={currentPage} />
+                <SelectPage selectPage={this.state.select} handleSelectChange={this.handleSelectChange} />
+            </div>
         );
     }
 }
